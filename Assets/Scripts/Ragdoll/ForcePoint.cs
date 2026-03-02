@@ -14,22 +14,10 @@ public class ForcePoint : MonoBehaviour
     public float bodyLiftForceY = 8f;
     public float spinTorque = 0f;
 
-    public float groundCheckRadius = 0.3f;
-    public LayerMask groundLayer;
-
-    private bool isGrounded;
-
     private void Update()
     {
-        isGrounded = CheckGrounded();
-
         if (Input.GetMouseButtonDown(0))
             ApplyForce();
-    }
-
-    private bool CheckGrounded()
-    {
-        return Physics2D.OverlapCircle(transform.position, groundCheckRadius, groundLayer);
     }
 
     // Task 1.4: Find leftmost leaf by world X position
@@ -58,8 +46,6 @@ public class ForcePoint : MonoBehaviour
     // Task 1.5: Apply force to leftmost leaf
     public void ApplyForce()
     {
-        if (!isGrounded) return;
-
         UnfreezeAll();
 
         if (bodyLiftEnabled)
@@ -108,9 +94,4 @@ public class ForcePoint : MonoBehaviour
         }
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = isGrounded ? new Color(0f, 1f, 0f, 0.8f) : new Color(1f, 0f, 0f, 0.8f);
-        Gizmos.DrawWireSphere(transform.position, groundCheckRadius);
-    }
 }

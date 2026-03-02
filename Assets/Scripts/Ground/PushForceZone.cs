@@ -6,6 +6,7 @@ public class PushForceZone : MonoBehaviour
     public float forceX = 10f;
     public float zoneWidth = 5f;
     public float zoneHeight = 3f;
+    public float maxVelocityX = 15f;
     public LayerMask playerLayer;
 
     private void Update()
@@ -26,7 +27,12 @@ public class PushForceZone : MonoBehaviour
         {
             Rigidbody2D[] rbs = root.GetComponentsInChildren<Rigidbody2D>();
             foreach (Rigidbody2D rb in rbs)
+            {
                 rb.AddForce(new Vector2(forceX, 0f), ForceMode2D.Impulse);
+                Vector2 v = rb.velocity;
+                v.x = Mathf.Clamp(v.x, -maxVelocityX, maxVelocityX);
+                rb.velocity = v;
+            }
         }
     }
 

@@ -1,0 +1,216 @@
+{
+    "version": 2,
+    "name": "New Level",
+    "playerPosition": [
+        -2.3399999141693117,
+        -0.9900000095367432,
+        0.0
+    ],
+    "elements": [
+        {
+            "prefab": "Square",
+            "position": [
+                11.274499893188477,
+                -2.0929999351501467,
+                0.0
+            ],
+            "scale": [
+                42.5478401184082,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": [
+                {
+                    "type": "GroundLiftZone",
+                    "properties": [
+                        {
+                            "name": "liftForceY",
+                            "value": 2.5
+                        },
+                        {
+                            "name": "zoneHeight",
+                            "value": 8.0
+                        },
+                        {
+                            "name": "zoneWidth",
+                            "value": 100.0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "prefab": "PushForce",
+            "position": [
+                -6.329999923706055,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                12.544756889343262,
+                1.0
+            ],
+            "rotation": [],
+            "components": [
+                {
+                    "type": "PushForceZone",
+                    "properties": [
+                        {
+                            "name": "forceX",
+                            "value": 0.20000000298023225
+                        },
+                        {
+                            "name": "zoneWidth",
+                            "value": 150.0
+                        },
+                        {
+                            "name": "zoneHeight",
+                            "value": 10.0
+                        },
+                        {
+                            "name": "maxVelocityX",
+                            "value": 15.0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "prefab": "wall",
+            "position": [
+                8.643400192260743,
+                2.340100049972534,
+                0.0
+            ],
+            "scale": [
+                31.094097137451173,
+                1.913651943206787,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "BarStool",
+            "position": [
+                1.8600000143051148,
+                -1.2699999809265137,
+                0.0
+            ],
+            "scale": [
+                0.699999988079071,
+                0.699999988079071,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "BarStool",
+            "position": [
+                1.4900000095367432,
+                -0.09000000357627869,
+                0.0
+            ],
+            "scale": [
+                0.699999988079071,
+                0.699999988079071,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "BarStool",
+            "position": [
+                2.299999952316284,
+                -0.10999999940395355,
+                0.0
+            ],
+            "scale": [
+                0.699999988079071,
+                0.699999988079071,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "BarStool",
+            "position": [
+                1.899999976158142,
+                0.9700000286102295,
+                0.0
+            ],
+            "scale": [
+                0.699999988079071,
+                0.699999988079071,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "BarStool",
+            "position": [
+                1.0199999809265137,
+                -1.2699999809265137,
+                0.0
+            ],
+            "scale": [
+                0.699999988079071,
+                0.699999988079071,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "BarStool",
+            "position": [
+                2.700000047683716,
+                -1.2699999809265137,
+                0.0
+            ],
+            "scale": [
+                0.699999988079071,
+                0.699999988079071,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "Block",
+            "position": [
+                -5.230000019073486,
+                7.29662561416626,
+                -0.19870266318321229
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "Block",
+            "position": [
+                33.209999084472659,
+                7.29662561416626,
+                -0.19870266318321229
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        }
+    ]
+}
