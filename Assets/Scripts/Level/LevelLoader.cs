@@ -12,6 +12,7 @@ public class LevelLoader : MonoBehaviour
     public Transform obstaclesContainer;
 
     public LayerMask groundLayer;
+    public Transform playerTransform;
 
     private Dictionary<string, GameObject> prefabMap;
 
@@ -20,6 +21,17 @@ public class LevelLoader : MonoBehaviour
     private void Start()
     {
         BuildPrefabMap();
+
+#if UNITY_EDITOR
+        string editorJson = UnityEditor.SessionState.GetString("LevelEditor_PlayJson", "");
+        if (!string.IsNullOrEmpty(editorJson))
+        {
+            UnityEditor.SessionState.EraseString("LevelEditor_PlayJson");
+            LoadLevelFromJson(editorJson);
+            return;
+        }
+#endif
+
         LoadLevel();
     }
 
@@ -85,6 +97,14 @@ public class LevelLoader : MonoBehaviour
                     SetLayerRecursive(go, groundLayerIndex);
                 }
             }
+        }
+
+        if (playerTransform != null && data.playerPosition != null && data.playerPosition.Length >= 2)
+        {
+            playerTransform.position = new Vector3(
+                data.playerPosition[0],
+                data.playerPosition[1],
+                data.playerPosition.Length >= 3 ? data.playerPosition[2] : 0f);
         }
 
         Debug.Log($"[LevelLoader] Loaded V2 level '{data.name}' ({data.elements?.Length ?? 0} elements)");

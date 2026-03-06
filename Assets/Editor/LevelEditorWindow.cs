@@ -39,8 +39,52 @@ public class LevelEditorWindow : EditorWindow
 
         EditorGUILayout.Space();
 
+        GUI.backgroundColor = new Color(0.3f, 0.9f, 0.3f);
+        if (GUILayout.Button("▶  Play Level", GUILayout.Height(40)))
+            PlayLevel();
+        GUI.backgroundColor = Color.white;
+
+        EditorGUILayout.Space();
+
         if (!string.IsNullOrEmpty(lastSavePath))
             EditorGUILayout.HelpBox($"Last saved: {lastSavePath}", MessageType.Info);
+    }
+
+    private void PlayLevel()
+    {
+        Transform container = FindLevelContainer();
+        if (container == null) return;
+
+        Dictionary<string, GameObject> prefabMap = BuildPrefabMap();
+        Dictionary<GameObject, string> reversePrefabMap = new Dictionary<GameObject, string>();
+        foreach (var kvp in prefabMap)
+            reversePrefabMap[kvp.Value] = kvp.Key;
+
+        List<LevelElement> elements = new List<LevelElement>();
+        CollectElements(container, prefabMap, reversePrefabMap, elements, skipContainers: true);
+        Transform obstacles = container.Find("Obstacles");
+        if (obstacles != null)
+            CollectElements(obstacles, prefabMap, reversePrefabMap, elements, skipContainers: false);
+
+        float[] playerPos = null;
+        GameObject player = FindPlayer();
+        if (player != null)
+        {
+            Vector3 p = player.transform.position;
+            playerPos = new float[] { p.x, p.y, p.z };
+        }
+
+        LevelDataV2 data = new LevelDataV2
+        {
+            version = 2,
+            name = levelName,
+            playerPosition = playerPos,
+            elements = elements.ToArray()
+        };
+
+        string json = JsonUtility.ToJson(data);
+        SessionState.SetString("LevelEditor_PlayJson", json);
+        EditorApplication.isPlaying = true;
     }
 
     private void NewLevel()
@@ -384,13 +428,22 @@ public class LevelEditorWindow : EditorWindow
         WinZone win = go.GetComponent<WinZone>();
         if (win != null)
         {
+            List<ComponentProperty> winProps = new List<ComponentProperty>
+            {
+                new ComponentProperty { name = "delay", value = win.delay },
+            };
+
+            if (win.celebrateSpawnPoint != null)
+            {
+                Vector3 lp = win.celebrateSpawnPoint.localPosition;
+                winProps.Add(new ComponentProperty { name = "posX", value = lp.x });
+                winProps.Add(new ComponentProperty { name = "posY", value = lp.y });
+            }
+
             list.Add(new ComponentData
             {
                 type = "WinZone",
-                properties = new[]
-                {
-                    new ComponentProperty { name = "delay", value = win.delay },
-                }
+                properties = winProps.ToArray()
             });
         }
 
@@ -436,13 +489,19 @@ public class LevelEditorWindow : EditorWindow
             {
                 WinZone win = go.GetComponent<WinZone>();
                 if (win == null) continue;
+                float posX = 0f, posY = 0f;
+                bool hasPos = false;
                 foreach (ComponentProperty p in cd.properties)
                 {
                     switch (p.name)
                     {
                         case "delay": win.delay = p.value; break;
+                        case "posX": posX = p.value; hasPos = true; break;
+                        case "posY": posY = p.value; break;
                     }
                 }
+                if (hasPos && win.celebrateSpawnPoint != null)
+                    win.celebrateSpawnPoint.localPosition = new Vector3(posX, posY, 0f);
             }
         }
     }

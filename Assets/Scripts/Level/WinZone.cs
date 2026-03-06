@@ -6,6 +6,7 @@ public class WinZone : MonoBehaviour
     public GameObject celebratePrefab;
     public Transform celebrateSpawnPoint;
     public float delay = 2f;
+    public float brakeTime = 0.5f;
     public LayerMask playerLayer;
 
     private BoxCollider2D boxCollider;
@@ -41,6 +42,28 @@ public class WinZone : MonoBehaviour
 
     private IEnumerator WinSequence(Transform player)
     {
+        InputGate.locked = true;
+
+        CameraFollow cam = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
+        if (cam != null)
+            cam.SetMaxX(transform.position.x);
+
+        // Gradually reduce horizontal velocity to zero
+        Rigidbody2D[] rbs = player.GetComponentsInChildren<Rigidbody2D>();
+        float elapsed = 0f;
+        float[] startVx = new float[rbs.Length];
+        for (int i = 0; i < rbs.Length; i++)
+            startVx[i] = rbs[i].velocity.x;
+
+        while (elapsed < brakeTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / brakeTime);
+            for (int i = 0; i < rbs.Length; i++)
+                rbs[i].velocity = new Vector2(Mathf.Lerp(startVx[i], 0f, t), rbs[i].velocity.y);
+            yield return null;
+        }
+
         ForcePoint fp = player.GetComponentInChildren<ForcePoint>();
         if (fp != null)
             fp.FreezeAll();
@@ -49,10 +72,16 @@ public class WinZone : MonoBehaviour
 
         player.gameObject.SetActive(false);
 
+        if (cam != null)
+            cam.SlideTo(celebrateSpawnPoint != null ? celebrateSpawnPoint.position.x : transform.position.x);
+
         if (celebratePrefab != null)
         {
             Vector3 spawnPos = celebrateSpawnPoint != null ? celebrateSpawnPoint.position : player.position;
             Instantiate(celebratePrefab, spawnPos, Quaternion.identity);
         }
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.Win();
     }
 }

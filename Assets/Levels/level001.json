@@ -10,22 +10,41 @@
         {
             "prefab": "Square",
             "position": [
-                26.852100372314454,
-                -2.1700000762939455,
+                2.244696617126465,
+                -2.640000104904175,
                 0.0
             ],
             "scale": [
-                73.70525360107422,
+                96.48999786376953,
                 1.0,
                 1.0
             ],
-            "rotation": []
+            "rotation": [],
+            "components": [
+                {
+                    "type": "GroundLiftZone",
+                    "properties": [
+                        {
+                            "name": "liftForceY",
+                            "value": 3.0
+                        },
+                        {
+                            "name": "zoneHeight",
+                            "value": 8.0
+                        },
+                        {
+                            "name": "zoneWidth",
+                            "value": 100.0
+                        }
+                    ]
+                }
+            ]
         },
         {
             "prefab": "PushForce",
             "position": [
-                -9.449999809265137,
-                0.0,
+                -4.936971664428711,
+                1.5,
                 0.0
             ],
             "scale": [
@@ -33,7 +52,138 @@
                 12.544756889343262,
                 1.0
             ],
-            "rotation": []
+            "rotation": [],
+            "components": [
+                {
+                    "type": "PushForceZone",
+                    "properties": [
+                        {
+                            "name": "forceX",
+                            "value": 0.20000000298023225
+                        },
+                        {
+                            "name": "zoneWidth",
+                            "value": 150.0
+                        },
+                        {
+                            "name": "zoneHeight",
+                            "value": 10.0
+                        },
+                        {
+                            "name": "maxVelocityX",
+                            "value": 5.0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "prefab": "wall",
+            "position": [
+                40.16460037231445,
+                1.676300048828125,
+                0.0
+            ],
+            "scale": [
+                63.476871490478519,
+                1.8210009336471558,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "WinZone",
+            "position": [
+                40.29999923706055,
+                -0.22543516755104066,
+                -0.0315493680536747
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": [
+                {
+                    "type": "WinZone",
+                    "properties": [
+                        {
+                            "name": "delay",
+                            "value": 1.0
+                        },
+                        {
+                            "name": "posX",
+                            "value": 0.0
+                        },
+                        {
+                            "name": "posY",
+                            "value": 0.0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "prefab": "Fridge",
+            "position": [
+                3.450000047683716,
+                -0.23999999463558198,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "Fridge",
+            "position": [
+                10.8100004196167,
+                -0.23999999463558198,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "Fridge",
+            "position": [
+                18.440000534057618,
+                -0.23999999463558198,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
+        },
+        {
+            "prefab": "Fridge",
+            "position": [
+                28.700000762939454,
+                -0.23999999463558198,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "rotation": [],
+            "components": []
         }
     ]
 }

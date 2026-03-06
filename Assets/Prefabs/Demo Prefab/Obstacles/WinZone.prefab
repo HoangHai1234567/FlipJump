@@ -92,7 +92,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   celebratePrefab: {fileID: 7816311429029952503, guid: 8d9572e4d03b46d4a98d105a220ac34e, type: 3}
-  delay: 3
+  celebrateSpawnPoint: {fileID: 4746834286283593613}
+  delay: 1
+  brakeTime: 1
   playerLayer:
     serializedVersion: 2
     m_Bits: 64

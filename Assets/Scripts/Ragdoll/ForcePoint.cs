@@ -16,11 +16,11 @@ public class ForcePoint : MonoBehaviour
 
     private void Update()
     {
+        if (InputGate.locked) return;
         if (Input.GetMouseButtonDown(0))
             ApplyForce();
     }
 
-    // Task 1.4: Find leftmost leaf by world X position
     private Rigidbody2D FindLeftmostLeaf()
     {
         if (leafLimbs == null || leafLimbs.Length == 0)
@@ -43,7 +43,6 @@ public class ForcePoint : MonoBehaviour
         return leftmost.GetComponent<Rigidbody2D>();
     }
 
-    // Task 1.5: Apply force to leftmost leaf
     public void ApplyForce()
     {
         UnfreezeAll();

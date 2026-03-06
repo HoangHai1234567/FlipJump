@@ -11,6 +11,7 @@ public class PushForceZone : MonoBehaviour
 
     private void Update()
     {
+        if (InputGate.locked) return;
         if (Input.GetMouseButtonDown(0))
             TryPush();
     }
