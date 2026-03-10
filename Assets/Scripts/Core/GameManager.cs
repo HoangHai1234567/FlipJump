@@ -76,6 +76,7 @@ public class GameManager : MonoBehaviour
     {
         if (State != GameState.Playing) return;
         State = GameState.Paused;
+        InputGate.locked = true;
         Time.timeScale = 0f;
 
         if (popupPausePrefab != null)
@@ -86,6 +87,7 @@ public class GameManager : MonoBehaviour
     {
         if (State != GameState.Paused) return;
         Time.timeScale = 1f;
+        InputGate.locked = false;
         State = GameState.Playing;
     }
 

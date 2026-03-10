@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.U2D;
 
 public class LevelLoader : MonoBehaviour
 {
@@ -16,7 +17,7 @@ public class LevelLoader : MonoBehaviour
 
     private Dictionary<string, GameObject> prefabMap;
 
-    private static readonly HashSet<string> GroundPrefabs = new HashSet<string> { "Square", "Platform" };
+    private static readonly HashSet<string> GroundPrefabs = new HashSet<string> { "Square", "Platform", "Terrain - GroundShape" };
 
     private void Start()
     {
@@ -196,7 +197,113 @@ public class LevelLoader : MonoBehaviour
         if (el.scale != null && el.scale.Length >= 3)
             go.transform.localScale = new Vector3(el.scale[0], el.scale[1], el.scale[2]);
 
+        ApplyComponents(go, el.components);
+
+        if (el.splinePoints != null && el.splinePoints.Length > 0)
+            ApplySplinePoints(go, el.splinePoints);
+
         return go;
+    }
+
+    private static void ApplyComponents(GameObject go, ComponentData[] components)
+    {
+        if (components == null) return;
+
+        foreach (ComponentData cd in components)
+        {
+            if (cd.type == "PushForceZone")
+            {
+                PushForceZone push = go.GetComponent<PushForceZone>();
+                if (push == null) continue;
+                foreach (ComponentProperty p in cd.properties)
+                {
+                    switch (p.name)
+                    {
+                        case "forceX": push.forceX = p.value; break;
+                        case "zoneWidth": push.zoneWidth = p.value; break;
+                        case "zoneHeight": push.zoneHeight = p.value; break;
+                        case "maxVelocityX": push.maxVelocityX = p.value; break;
+                    }
+                }
+            }
+            else if (cd.type == "GroundLiftZone")
+            {
+                GroundLiftZone lift = go.GetComponent<GroundLiftZone>();
+                if (lift == null) continue;
+                foreach (ComponentProperty p in cd.properties)
+                {
+                    switch (p.name)
+                    {
+                        case "liftForceY": lift.liftForceY = p.value; break;
+                        case "zoneHeight": lift.zoneHeight = p.value; break;
+                        case "zoneWidth": lift.zoneWidth = p.value; break;
+                        case "playerLayer": lift.playerLayer = (int)p.value; break;
+                        case "groundLayer": lift.groundLayer = (int)p.value; break;
+                    }
+                }
+            }
+            else if (cd.type == "WinZone")
+            {
+                WinZone win = go.GetComponent<WinZone>();
+                if (win == null) continue;
+                float posX = 0f, posY = 0f;
+                bool hasPos = false;
+                foreach (ComponentProperty p in cd.properties)
+                {
+                    switch (p.name)
+                    {
+                        case "delay": win.delay = p.value; break;
+                        case "posX": posX = p.value; hasPos = true; break;
+                        case "posY": posY = p.value; break;
+                    }
+                }
+                if (hasPos && win.celebrateSpawnPoint != null)
+                    win.celebrateSpawnPoint.localPosition = new Vector3(posX, posY, 0f);
+            }
+        }
+    }
+
+    private static void ApplySplinePoints(GameObject go, SplinePointData[] points)
+    {
+        SpriteShapeController oldSsc = go.GetComponent<SpriteShapeController>();
+        if (oldSsc == null) return;
+
+        // Save settings from the prefab's SSC
+        SpriteShape profile = oldSsc.spriteShape;
+        int splineDetail = oldSsc.splineDetail;
+        int colliderDetail = oldSsc.colliderDetail;
+        bool autoUpdate = oldSsc.autoUpdateCollider;
+        float colliderOffset = oldSsc.colliderOffset;
+
+        // Destroy old SSC so its baked mesh is gone
+        DestroyImmediate(oldSsc);
+
+        // Add fresh SSC — it will bake mesh from our spline on first LateUpdate
+        SpriteShapeController ssc = go.AddComponent<SpriteShapeController>();
+        ssc.spriteShape = profile;
+        ssc.splineDetail = splineDetail;
+        ssc.colliderDetail = colliderDetail;
+        ssc.autoUpdateCollider = autoUpdate;
+        ssc.colliderOffset = colliderOffset;
+
+        Spline spline = ssc.spline;
+        spline.Clear();
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            float[] p = points[i].position;
+            spline.InsertPointAt(i, new Vector3(p[0], p[1], p[2]));
+
+            spline.SetTangentMode(i, ShapeTangentMode.Broken);
+
+            float[] lt = points[i].leftTangent;
+            spline.SetLeftTangent(i, new Vector3(lt[0], lt[1], lt[2]));
+
+            float[] rt = points[i].rightTangent;
+            spline.SetRightTangent(i, new Vector3(rt[0], rt[1], rt[2]));
+        }
+
+        ssc.BakeCollider();
     }
 
     private void ClearContainer(Transform container)

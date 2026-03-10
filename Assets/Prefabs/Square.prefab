@@ -144,8 +144,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   liftForceY: 3
-  zoneHeight: 8
+  zoneHeight: 30
   zoneWidth: 100
   playerLayer:
     serializedVersion: 2
     m_Bits: 64
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0

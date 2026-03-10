@@ -8,6 +8,7 @@ public class LiftPoint : MonoBehaviour
 
     private void Update()
     {
+        if (InputGate.IsBlocked) return;
         if (!Input.GetMouseButtonDown(0)) return;
         if (bodyRigidbody == null) return;
 

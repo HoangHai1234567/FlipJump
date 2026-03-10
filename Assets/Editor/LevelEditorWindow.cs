@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.U2D;
 
 public class LevelEditorWindow : EditorWindow
 {
@@ -318,6 +319,15 @@ public class LevelEditorWindow : EditorWindow
             go.transform.localScale = new Vector3(el.scale[0], el.scale[1], el.scale[2]);
 
         ApplyComponents(go, el.components);
+        ApplySplinePoints(go, el.splinePoints);
+
+        // Record spline overrides so they survive Play mode
+        SpriteShapeController ssc = go.GetComponent<SpriteShapeController>();
+        if (ssc != null)
+        {
+            PrefabUtility.RecordPrefabInstancePropertyModifications(ssc);
+            EditorUtility.SetDirty(ssc);
+        }
 
         Undo.RegisterCreatedObjectUndo(go, $"Spawn {el.prefab}");
         return go;
@@ -385,6 +395,7 @@ public class LevelEditorWindow : EditorWindow
                 el.rotation = new float[] { euler.x, euler.y, euler.z };
 
             el.components = SerializeComponents(child.gameObject);
+            el.splinePoints = SerializeSplinePoints(child.gameObject);
 
             elements.Add(el);
         }
@@ -421,6 +432,8 @@ public class LevelEditorWindow : EditorWindow
                     new ComponentProperty { name = "liftForceY", value = lift.liftForceY },
                     new ComponentProperty { name = "zoneHeight", value = lift.zoneHeight },
                     new ComponentProperty { name = "zoneWidth", value = lift.zoneWidth },
+                    new ComponentProperty { name = "playerLayer", value = lift.playerLayer.value },
+                    new ComponentProperty { name = "groundLayer", value = lift.groundLayer.value },
                 }
             });
         }
@@ -482,6 +495,8 @@ public class LevelEditorWindow : EditorWindow
                         case "liftForceY": lift.liftForceY = p.value; break;
                         case "zoneHeight": lift.zoneHeight = p.value; break;
                         case "zoneWidth": lift.zoneWidth = p.value; break;
+                        case "playerLayer": lift.playerLayer = (int)p.value; break;
+                        case "groundLayer": lift.groundLayer = (int)p.value; break;
                     }
                 }
             }
@@ -506,9 +521,67 @@ public class LevelEditorWindow : EditorWindow
         }
     }
 
+    private static SplinePointData[] SerializeSplinePoints(GameObject go)
+    {
+        SpriteShapeController ssc = go.GetComponent<SpriteShapeController>();
+        if (ssc == null) return null;
+
+        Spline spline = ssc.spline;
+        int count = spline.GetPointCount();
+        if (count == 0) return null;
+
+        SplinePointData[] points = new SplinePointData[count];
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 pos = spline.GetPosition(i);
+            Vector3 lt = spline.GetLeftTangent(i);
+            Vector3 rt = spline.GetRightTangent(i);
+            int mode = (int)spline.GetTangentMode(i);
+
+            points[i] = new SplinePointData
+            {
+                position = new float[] { pos.x, pos.y, pos.z },
+                leftTangent = new float[] { lt.x, lt.y, lt.z },
+                rightTangent = new float[] { rt.x, rt.y, rt.z },
+                mode = mode
+            };
+        }
+        return points;
+    }
+
+    private static void ApplySplinePoints(GameObject go, SplinePointData[] points)
+    {
+        if (points == null || points.Length == 0) return;
+
+        SpriteShapeController ssc = go.GetComponent<SpriteShapeController>();
+        if (ssc == null) return;
+
+        Undo.RecordObject(ssc, "Apply Spline Points");
+
+        Spline spline = ssc.spline;
+        spline.Clear();
+
+        for (int i = 0; i < points.Length; i++)
+        {
+            float[] p = points[i].position;
+            spline.InsertPointAt(i, new Vector3(p[0], p[1], p[2]));
+
+            spline.SetTangentMode(i, ShapeTangentMode.Broken);
+
+            float[] lt = points[i].leftTangent;
+            spline.SetLeftTangent(i, new Vector3(lt[0], lt[1], lt[2]));
+
+            float[] rt = points[i].rightTangent;
+            spline.SetRightTangent(i, new Vector3(rt[0], rt[1], rt[2]));
+        }
+
+        ssc.BakeCollider();
+        EditorUtility.SetDirty(ssc);
+    }
+
     private static bool IsGroundPrefab(string prefabName)
     {
-        return prefabName == "Square" || prefabName == "Platform";
+        return prefabName == "Square" || prefabName == "Platform" || prefabName == "Terrain - GroundShape";
     }
 
     /// <summary>
@@ -516,7 +589,7 @@ public class LevelEditorWindow : EditorWindow
     /// </summary>
     private static bool IsObstaclePrefab(string prefabName, Dictionary<string, GameObject> prefabMap)
     {
-        if (prefabName == "Square" || prefabName == "Platform" || prefabName == "PushForce" || prefabName == "WinZone")
+        if (prefabName == "Square" || prefabName == "Platform" || prefabName == "PushForce" || prefabName == "WinZone" || prefabName == "Terrain - GroundShape")
             return false;
         return true;
     }

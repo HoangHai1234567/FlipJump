@@ -16,6 +16,15 @@ public class ComponentData
 }
 
 [Serializable]
+public class SplinePointData
+{
+    public float[] position;
+    public float[] leftTangent;
+    public float[] rightTangent;
+    public int mode;
+}
+
+[Serializable]
 public class LevelElement
 {
     public string prefab;
@@ -23,6 +32,7 @@ public class LevelElement
     public float[] scale;
     public float[] rotation;
     public ComponentData[] components;
+    public SplinePointData[] splinePoints;
 }
 
 [Serializable]
