@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.U2D;
@@ -16,6 +17,7 @@ public class LevelLoader : MonoBehaviour
     public Transform playerTransform;
 
     private Dictionary<string, GameObject> prefabMap;
+    private static string cachedLevelJson;
 
     private static readonly HashSet<string> GroundPrefabs = new HashSet<string> { "Square", "Platform", "Terrain - GroundShape" };
 
@@ -28,10 +30,17 @@ public class LevelLoader : MonoBehaviour
         if (!string.IsNullOrEmpty(editorJson))
         {
             UnityEditor.SessionState.EraseString("LevelEditor_PlayJson");
+            cachedLevelJson = editorJson;
             LoadLevelFromJson(editorJson);
             return;
         }
 #endif
+
+        if (!string.IsNullOrEmpty(cachedLevelJson))
+        {
+            LoadLevelFromJson(cachedLevelJson);
+            return;
+        }
 
         LoadLevel();
     }
@@ -66,12 +75,33 @@ public class LevelLoader : MonoBehaviour
 
     public void LoadLevelFromJson(string json)
     {
+        StartCoroutine(LoadLevelCoroutine(json));
+    }
+
+    private IEnumerator LoadLevelCoroutine(string json)
+    {
+        // Freeze player before spawning anything
+        ForcePoint forcePoint = null;
+        if (playerTransform != null)
+        {
+            forcePoint = playerTransform.GetComponentInChildren<ForcePoint>();
+            if (forcePoint != null)
+                forcePoint.FreezeAll();
+        }
+
         VersionCheck vc = JsonUtility.FromJson<VersionCheck>(json);
 
         if (vc != null && vc.version == 2)
             LoadV2(json);
         else
             LoadV1(json);
+
+        // Wait 1 frame for colliders/mesh to rebuild
+        yield return null;
+
+        // Unfreeze player
+        if (forcePoint != null)
+            forcePoint.FreezeAll(); // Keep frozen — ForcePoint.ApplyForce() will unfreeze on first click
     }
 
     private void LoadV2(string json)
@@ -86,12 +116,25 @@ public class LevelLoader : MonoBehaviour
         ClearContainer(levelContainer);
 
         int groundLayerIndex = GetLayerIndex(groundLayer);
+        Dictionary<string, Transform> containers = new Dictionary<string, Transform>();
 
         if (data.elements != null)
         {
             foreach (LevelElement el in data.elements)
             {
-                GameObject go = SpawnElement(el, levelContainer);
+                Transform parent = levelContainer;
+                if (!string.IsNullOrEmpty(el.category))
+                {
+                    if (!containers.TryGetValue(el.category, out parent))
+                    {
+                        GameObject containerGo = new GameObject(el.category);
+                        containerGo.transform.SetParent(levelContainer);
+                        parent = containerGo.transform;
+                        containers[el.category] = parent;
+                    }
+                }
+
+                GameObject go = SpawnElement(el, parent);
                 if (go != null && GroundPrefabs.Contains(el.prefab))
                 {
                     go.tag = "Ground";
@@ -194,6 +237,9 @@ public class LevelLoader : MonoBehaviour
 
         GameObject go = Instantiate(prefab, pos, rot, parent);
 
+        // Disable colliders to prevent premature collision before data is applied
+        SetCollidersEnabled(go, false);
+
         if (el.scale != null && el.scale.Length >= 3)
             go.transform.localScale = new Vector3(el.scale[0], el.scale[1], el.scale[2]);
 
@@ -201,6 +247,9 @@ public class LevelLoader : MonoBehaviour
 
         if (el.splinePoints != null && el.splinePoints.Length > 0)
             ApplySplinePoints(go, el.splinePoints);
+
+        // Re-enable colliders after all data is applied
+        SetCollidersEnabled(go, true);
 
         return go;
     }
@@ -259,6 +308,21 @@ public class LevelLoader : MonoBehaviour
                 }
                 if (hasPos && win.celebrateSpawnPoint != null)
                     win.celebrateSpawnPoint.localPosition = new Vector3(posX, posY, 0f);
+            }
+            else if (cd.type == "CreeperAttach")
+            {
+                CreeperAttach creeper = go.GetComponent<CreeperAttach>();
+                if (creeper == null) continue;
+                foreach (ComponentProperty p in cd.properties)
+                {
+                    switch (p.name)
+                    {
+                        case "angleA": creeper.angleA = p.value; break;
+                        case "angleB": creeper.angleB = p.value; break;
+                        case "moveSpeed": creeper.moveSpeed = p.value; break;
+                        case "releaseForce": creeper.releaseForce = p.value; break;
+                    }
+                }
             }
         }
     }
@@ -329,5 +393,12 @@ public class LevelLoader : MonoBehaviour
         go.layer = layer;
         foreach (Transform child in go.transform)
             SetLayerRecursive(child.gameObject, layer);
+    }
+
+    private static void SetCollidersEnabled(GameObject go, bool enabled)
+    {
+        Collider2D[] colliders = go.GetComponentsInChildren<Collider2D>();
+        foreach (Collider2D col in colliders)
+            col.enabled = enabled;
     }
 }

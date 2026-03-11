@@ -11,6 +11,7 @@ public class LevelEditorWindow : EditorWindow
 
     private const string PrefabSearchFolder = "Assets/Prefabs";
     private const string LevelContainerName = "Level";
+    private static readonly string[] ContainerNames = { "Obstacles", "Background", "Terrain", "DecorObject" };
 
     [MenuItem("Tools/Level Editor")]
     public static void ShowWindow()
@@ -62,10 +63,13 @@ public class LevelEditorWindow : EditorWindow
             reversePrefabMap[kvp.Value] = kvp.Key;
 
         List<LevelElement> elements = new List<LevelElement>();
-        CollectElements(container, prefabMap, reversePrefabMap, elements, skipContainers: true);
-        Transform obstacles = container.Find("Obstacles");
-        if (obstacles != null)
-            CollectElements(obstacles, prefabMap, reversePrefabMap, elements, skipContainers: false);
+        CollectElements(container, prefabMap, reversePrefabMap, elements, null);
+        foreach (string cName in ContainerNames)
+        {
+            Transform sub = container.Find(cName);
+            if (sub != null)
+                CollectElements(sub, prefabMap, reversePrefabMap, elements, cName);
+        }
 
         float[] playerPos = null;
         GameObject player = FindPlayer();
@@ -94,20 +98,22 @@ public class LevelEditorWindow : EditorWindow
 
         Undo.RegisterFullObjectHierarchyUndo(container.gameObject, "New Level");
 
-        // Clear obstacles container only
-        Transform obstacles = container.Find("Obstacles");
-        if (obstacles != null)
-            ClearContainer(obstacles);
-        else
+        foreach (string name in ContainerNames)
         {
-            GameObject obstaclesGo = new GameObject("Obstacles");
-            obstaclesGo.transform.SetParent(container);
-            Undo.RegisterCreatedObjectUndo(obstaclesGo, "Create Obstacles Container");
+            Transform sub = container.Find(name);
+            if (sub != null)
+                ClearContainer(sub);
+            else
+            {
+                GameObject go = new GameObject(name);
+                go.transform.SetParent(container);
+                Undo.RegisterCreatedObjectUndo(go, $"Create {name} Container");
+            }
         }
 
         levelName = "New Level";
         EditorUtility.SetDirty(container.gameObject);
-        Debug.Log("[LevelEditor] New level — obstacles cleared.");
+        Debug.Log("[LevelEditor] New level created.");
     }
 
     private void SaveLevel()
@@ -124,11 +130,13 @@ public class LevelEditorWindow : EditorWindow
 
         List<LevelElement> elements = new List<LevelElement>();
 
-        // Collect from Level direct children (Square, PushForce, etc.) and Obstacles children
-        CollectElements(container, prefabMap, reversePrefabMap, elements, skipContainers: true);
-        Transform obstacles = container.Find("Obstacles");
-        if (obstacles != null)
-            CollectElements(obstacles, prefabMap, reversePrefabMap, elements, skipContainers: false);
+        CollectElements(container, prefabMap, reversePrefabMap, elements, null);
+        foreach (string cName in ContainerNames)
+        {
+            Transform sub = container.Find(cName);
+            if (sub != null)
+                CollectElements(sub, prefabMap, reversePrefabMap, elements, cName);
+        }
 
         float[] playerPos = null;
         GameObject player = FindPlayer();
@@ -177,21 +185,28 @@ public class LevelEditorWindow : EditorWindow
 
         Undo.RegisterFullObjectHierarchyUndo(container.gameObject, "Load Level");
 
-        // Clear obstacles, keep the Obstacles container itself
-        Transform obstacles = container.Find("Obstacles");
-        if (obstacles != null)
-            ClearContainer(obstacles);
-
-        // Clear direct children except Obstacles container
-        ClearContainerExcept(container, "Obstacles");
-
-        // Re-create Obstacles container if it was missing
-        if (obstacles == null)
+        // Clear all sub-containers and direct children
+        foreach (string cName in ContainerNames)
         {
-            GameObject obstaclesGo = new GameObject("Obstacles");
-            obstaclesGo.transform.SetParent(container);
-            obstacles = obstaclesGo.transform;
-            Undo.RegisterCreatedObjectUndo(obstaclesGo, "Create Obstacles Container");
+            Transform sub = container.Find(cName);
+            if (sub != null)
+                ClearContainer(sub);
+        }
+        ClearContainerExceptList(container, ContainerNames);
+
+        // Ensure all containers exist
+        Dictionary<string, Transform> containers = new Dictionary<string, Transform>();
+        foreach (string cName in ContainerNames)
+        {
+            Transform sub = container.Find(cName);
+            if (sub == null)
+            {
+                GameObject go = new GameObject(cName);
+                go.transform.SetParent(container);
+                sub = go.transform;
+                Undo.RegisterCreatedObjectUndo(go, $"Create {cName} Container");
+            }
+            containers[cName] = sub;
         }
 
         Dictionary<string, GameObject> prefabMap = BuildPrefabMap();
@@ -208,7 +223,17 @@ public class LevelEditorWindow : EditorWindow
             {
                 foreach (LevelElement el in data.elements)
                 {
-                    Transform parent = IsObstaclePrefab(el.prefab, prefabMap) ? obstacles : container;
+                    Transform parent;
+                    if (!string.IsNullOrEmpty(el.category) && containers.TryGetValue(el.category, out Transform sub))
+                        parent = sub;
+                    else if (string.IsNullOrEmpty(el.category))
+                        parent = container;
+                    else
+                    {
+                        // Backward compat: unknown category → use IsObstaclePrefab
+                        parent = IsObstaclePrefab(el.prefab, prefabMap) ? containers["Obstacles"] : container;
+                    }
+
                     GameObject go = SpawnEditorElement(el, parent, prefabMap);
                     if (go != null && IsGroundPrefab(el.prefab))
                     {
@@ -245,7 +270,7 @@ public class LevelEditorWindow : EditorWindow
                 }
             if (data.obstacles != null)
                 foreach (LevelElement el in data.obstacles)
-                { SpawnEditorElement(el, obstacles, prefabMap); count++; }
+                { SpawnEditorElement(el, containers["Obstacles"], prefabMap); count++; }
             if (data.zones != null)
                 foreach (LevelElement el in data.zones)
                 { SpawnEditorElement(el, container, prefabMap); count++; }
@@ -355,15 +380,22 @@ public class LevelEditorWindow : EditorWindow
         }
     }
 
+    private static bool IsContainerName(string name)
+    {
+        foreach (string c in ContainerNames)
+            if (c == name) return true;
+        return false;
+    }
+
     private static void CollectElements(Transform parent, Dictionary<string, GameObject> prefabMap,
-        Dictionary<GameObject, string> reversePrefabMap, List<LevelElement> elements, bool skipContainers)
+        Dictionary<GameObject, string> reversePrefabMap, List<LevelElement> elements, string category)
     {
         for (int i = 0; i < parent.childCount; i++)
         {
             Transform child = parent.GetChild(i);
 
-            // Skip the Obstacles container itself (not a prefab)
-            if (skipContainers && child.name == "Obstacles")
+            // Skip sub-containers when collecting from root
+            if (category == null && IsContainerName(child.name))
                 continue;
 
             GameObject prefabSource = PrefabUtility.GetCorrespondingObjectFromSource(child.gameObject);
@@ -386,6 +418,7 @@ public class LevelEditorWindow : EditorWindow
             LevelElement el = new LevelElement
             {
                 prefab = prefabName,
+                category = category,
                 position = new float[] { child.position.x, child.position.y, child.position.z },
                 scale = new float[] { child.localScale.x, child.localScale.y, child.localScale.z }
             };
@@ -460,6 +493,22 @@ public class LevelEditorWindow : EditorWindow
             });
         }
 
+        CreeperAttach creeper = go.GetComponent<CreeperAttach>();
+        if (creeper != null)
+        {
+            list.Add(new ComponentData
+            {
+                type = "CreeperAttach",
+                properties = new[]
+                {
+                    new ComponentProperty { name = "angleA", value = creeper.angleA },
+                    new ComponentProperty { name = "angleB", value = creeper.angleB },
+                    new ComponentProperty { name = "moveSpeed", value = creeper.moveSpeed },
+                    new ComponentProperty { name = "releaseForce", value = creeper.releaseForce },
+                }
+            });
+        }
+
         return list.Count > 0 ? list.ToArray() : null;
     }
 
@@ -517,6 +566,21 @@ public class LevelEditorWindow : EditorWindow
                 }
                 if (hasPos && win.celebrateSpawnPoint != null)
                     win.celebrateSpawnPoint.localPosition = new Vector3(posX, posY, 0f);
+            }
+            else if (cd.type == "CreeperAttach")
+            {
+                CreeperAttach creeper = go.GetComponent<CreeperAttach>();
+                if (creeper == null) continue;
+                foreach (ComponentProperty p in cd.properties)
+                {
+                    switch (p.name)
+                    {
+                        case "angleA": creeper.angleA = p.value; break;
+                        case "angleB": creeper.angleB = p.value; break;
+                        case "moveSpeed": creeper.moveSpeed = p.value; break;
+                        case "releaseForce": creeper.releaseForce = p.value; break;
+                    }
+                }
             }
         }
     }
@@ -601,13 +665,14 @@ public class LevelEditorWindow : EditorWindow
             Undo.DestroyObjectImmediate(container.GetChild(i).gameObject);
     }
 
-    private static void ClearContainerExcept(Transform container, string keepName)
+    private static void ClearContainerExceptList(Transform container, string[] keepNames)
     {
         if (container == null) return;
+        HashSet<string> keep = new HashSet<string>(keepNames);
         for (int i = container.childCount - 1; i >= 0; i--)
         {
             Transform child = container.GetChild(i);
-            if (child.name != keepName)
+            if (!keep.Contains(child.name))
                 Undo.DestroyObjectImmediate(child.gameObject);
         }
     }
@@ -618,4 +683,5 @@ public class LevelEditorWindow : EditorWindow
         foreach (Transform child in go.transform)
             SetLayerRecursive(child.gameObject, layer);
     }
+
 }

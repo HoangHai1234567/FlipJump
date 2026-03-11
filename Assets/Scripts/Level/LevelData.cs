@@ -28,6 +28,7 @@ public class SplinePointData
 public class LevelElement
 {
     public string prefab;
+    public string category;
     public float[] position;
     public float[] scale;
     public float[] rotation;
